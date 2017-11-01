@@ -1,0 +1,55 @@
+---
+title: "low dimension manifolds"
+author: "Aidan Bindoff"
+date: "31 October 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+library(rgl)
+library(Rtsne)
+library(ggplot2)
+library(geozoo)
+knitr::opts_chunk$set(echo = TRUE)
+knit_hooks$set(webgl = hook_webgl)
+```
+
+```{r, webgl = TRUE, warning = F, message = F, hold = T}
+
+n <- 3000
+X <- torus(p = 3, n = n, radius = c(5,1))
+A <- data.frame(X$points)
+names(A) <- c("v1", "v2", "v3")
+A$v4 <- abs(A$v3)# + rnorm(n, 0, 0.1))
+
+cr <- colorRampPalette(c("white", "wheat", "yellow", "coral", "firebrick", "black"),
+                       interpolate = "linear")(n)
+# A$col <- cr[A$v4*n]
+with(A, plot3d(v1, v2, v3, type = "s", size = 1, col = cr[v4*n]))
+```
+
+```{r, webgl = TRUE}
+m1 <- Rtsne(as.matrix(A), dims = 3, initial_dims = 4, perplexity = 50, verbose = T)
+B <- data.frame(m1$Y)
+B$v4 <- A$v4
+with(B, plot3d(X1, X2, X3, type = "s", size = 1,  col = cr[v4*n]))
+```
+
+```{r, webgl = TRUE}
+A$v5 <- (A$v1)^3
+with(A, plot3d(v3, v2, v5, type = "s", size = 1, col = cr[v4*n]))
+```
+```{r, webgl = TRUE}
+A$v6 <- (A$v2)^2
+with(A, plot3d(v2, v6, v5, type = "s", size = 1, col = cr[v4*n]))
+```
+```{r, webgl = TRUE}
+# m2 <- Rtsne(as.matrix(A), dims = 3, initial_dims = 6, perplexity = 50, verbose = T)
+# B <- data.frame(m2$Y)
+# B$v4 <- A$v4
+load("dimension_reduction.RData")
+with(B, plot3d(X1, X2, X3, type = "s", size = 1,  col = cr[v4*n]))
+
+
+```
