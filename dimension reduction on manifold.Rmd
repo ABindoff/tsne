@@ -29,11 +29,11 @@ A$v4 <- round(((A$v3+1)/2)*n,0)
 A <- dplyr::arrange(A, v3)
 
 cr <- colorRampPalette(c("white", "wheat", "yellow", "coral", "firebrick", "black"))(n)
-
+cr2 <- colorRampPalette(c("white", "wheat", "yellow", "seagreen4", "black"))(n)
 with(A, plot3d(v1, v2, v3, type = "s", size = 1, col = cr[v4], aspect = FALSE))
 ```
 
-The Barnes-Hut t-SNE algorithm attempts to fit a model with fewer dimensions, preserving local structure. The lower-dimensional model looks a lot like an elastic torus was split open and flattened out, kind of like a popped torus-shaped balloon.  
+The Barnes-Hut t-SNE algorithm attempts to fit a model with fewer dimensions, preserving local structure. The lower-dimensional model looks a lot like an elastic torus was split open and flattened out, kind of like a popped torus-shaped balloon. **Colouring has been changed to make it clear which plots are model output and which are sample data**
 
 
 ```{r, webgl = TRUE}
@@ -44,52 +44,66 @@ B$v4[B$v4 == 0] <- 1
 B$col <- cr[B$v4]
 B$v3 <- rnorm(n, 0, 0.1)
 
-with(B, plot3d(X1, v3, X2, type = "s", size = 1, col = cr[v4], aspect = FALSE))
+with(B, plot3d(X1, v3, X2, type = "s", size = 1, col = cr2[v4], aspect = FALSE))
 # 
 # ggplot(B, aes(x = X1, y = X2, colour = factor(v4))) +
 #   geom_point(size = 1) + scale_color_manual(guide = F, values = cr)
 ```
 
 
-A fourth dimension is added that has a linear relationship with another dimension (v3 on the plot). We simply add the colour mapping as a fourth dimension, and see if we recover the 3 dimensional structure with the colour mapping in-tact. The columns of the 4 x `r n` matrix have been scaled.  
+A fourth dimension is added which has a linear relationship with another dimension (v3 on the plot). We simply add the colour mapping as a fourth dimension, and see if we recover the 3 dimensional structure with the colour mapping in-tact. The columns of the 4 x `r n` matrix have been scaled.  
 
 
 ```{r, webgl = TRUE}
 
-m1 <- Rtsne(as.matrix(scale(A)), dims = 3, initial_dims = 4, perplexity = 400, verbose = F, max_iter = 1200)
+m1 <- Rtsne(as.matrix(scale(A)), dims = 3, initial_dims = 4, perplexity = 400, verbose = F)
 B <- data.frame(m1$Y)
 B$v4 <- A$v4
 B$v4[B$v4 == 0] <- 1
-B$col <- cr[B$v4]
-B$v3 <- rnorm(n, 0, 0.1)
 
-with(B, plot3d(X1, X2, X3, type = "s", size = 1, col = cr[v4], aspect = FALSE))
+with(B, plot3d(X1, X2, X3, type = "s", size = 1, col = cr2[v4], aspect = FALSE))
 
 ```
 
-Again, this looks like a torus-shaped balloon has been burst, only in this case it hasn't been flattened out. Note the characteristic effect of Barnes-Hut pulling clusters together. The `perplexity` hyperparameter controls the degree to which this occurs. The objective function of the gradient descent algorithm is to minimise Kullback-Leibler divergence, however the solution space is non-convex so the optimal solution isn't guaranteed. Nevertheless this is a fair representation of the original 4d object. If the matrix hadn't been scaled, the dimension represented by colour would have dominated under Kullback-Leibler as we will see below,  
+By setting the `perplexity` hyperparameter very high (400) we haven't allowed the points to cluster too greatly, which has preserved the global structure of this embedding quite well. Recall that the matrix columns were scaled. If the matrix hadn't been scaled, the dimension represented by colour would have dominated under Kullback-Leibler as we will see below,  
+
 
 ```{r, webgl = TRUE}
 
-m1 <- Rtsne(as.matrix(A), dims = 3, initial_dims = 4, perplexity = 200, verbose = F, max_iter = 1200)
+m1 <- Rtsne(as.matrix(A), dims = 3, initial_dims = 4, perplexity = 20, verbose = F)
 B <- data.frame(m1$Y)
 B$v4 <- A$v4
 B$v4[B$v4 == 0] <- 1
-B$col <- cr[B$v4]
-B$v3 <- rnorm(n, 0, 0.1)
 
-with(B, plot3d(X1, X2, X3, type = "s", size = 1, col = cr[v4], aspect = FALSE))
+with(B, plot3d(X1, X2, X3, type = "s", size = 1, col = cr2[v4], aspect = FALSE))
 
 ```
 
-Sure it's pretty, but it doesn't tell us much about v1, v2, or v3.  
+This doesn't tell us much about v1, v2, or v3. This is because v4 is on the scale [0, 3000], while v1, v2 are on the scale [-4, 4] and v3 is on [-1, 1]. This shows the importance of thinking carefully about the topological space the data occupy and how we measure variables.  
+
+Why do we need a fancy Barnes-Hut t-SNE algorithm to do what other dimension reducing algorithms such as PCA or MDS have been doing for years? We attempt the same fit using classical MDS for comparison -  
+
+```{r, webgl = TRUE}
+d <- dist(as.matrix(scale(A)))
+m2 <- cmdscale(d, k = 3)
+
+B <- data.frame(m2)
+B$v4 <- A$v4
+B$v4[B$v4 == 0] <- 1
+
+with(B, plot3d(X1, X2, X3, type = "s", size = 1, col = cr2[v4], aspect = FALSE))
+# 
+
+```
+
+This is an excellent representation of both global and local structure.  
 
 To increase the level of difficulty, all linear relationships are removed. Now the fourth dimension has a non-linear relationship with v3 and no correlation with v2 or v1.  
 
 
 ```{r, webgl = TRUE}
 A$v4 <- round(abs(A$v3)*n, 0)
-with(A, plot3d(v1, v2, v3, type = "s", size = 1, col = cr[v4], aspect = FALSE))
+with(A, plot3d(v1, v2, v3, type = "s", size = 1, col = cr[v4]), aspect = FALSE)
 ```
 
 
@@ -97,19 +111,34 @@ with(A, plot3d(v1, v2, v3, type = "s", size = 1, col = cr[v4], aspect = FALSE))
 m1 <- Rtsne(as.matrix(scale(A)), dims = 3, initial_dims = 4, perplexity = 200, verbose = F)
 B <- data.frame(m1$Y)
 B$v4 <- A$v4
-with(B, plot3d(X1, X2, X3, type = "s", size = 1,  col = cr[v4]))
+with(B, plot3d(X1, X2, X3, type = "s", size = 1,  col = cr2[v4]), aspect = TRUE)
 ```
 
+How well does MDS capture this non-linear relationship?  
+
+
+```{r, webgl = TRUE}
+d <- dist(as.matrix(scale(A)))
+m2 <- cmdscale(d, k = 3)
+
+B <- data.frame(m2)
+B$v4 <- A$v4
+
+with(B, plot3d(X1, X2, X3, type = "s", size = 1, col = cr2[v4], aspect = TRUE))
+# 
+
+```
+
+In an odd way it does represent global structure quite well, but not local structure. For example, the ends (in black) have been twisted back around to each other.  
 
 Add dimension v5 which has a non-linear relationship to v1, v2 & v3, and a linear relationship with v4. 
 
 
-
 ```{r, webgl = TRUE}
 A$v5 <- (A$v1)^3
-with(A, plot3d(v1, v2, v5, type = "s", size = 1, col = cr[v4]))
-with(A, plot3d(v2, v3, v5, type = "s", size = 1, col = cr[v4]))
-with(A, plot3d(v1, v4, v5, type = "s", size = 1, col = cr[v4]))
+with(A, plot3d(v1, v2, v5, type = "s", size = 1, col = cr[v4], aspect = TRUE))
+with(A, plot3d(v2, v3, v5, type = "s", size = 1, col = cr[v4], aspect = TRUE))
+with(A, plot3d(v1, v4, v5, type = "s", size = 1, col = cr[v4], aspect = TRUE))
 
 ```
 
@@ -131,7 +160,7 @@ with(A, plot3d(v4, v1, v6, type = "s", size = 1, col = cr[v4]))
 
 But for every dimension we add, we have *d choose 3* possible spatial representations. If we have 10 dimensions, that's 120 (or d-1 choose 3 = 84 if we use colour).  
 
-Setting `perplexity` = 750, the algorithm will take a long time to compute the embeddings, but the result is superb. If you take some time to explore all of the plots above, you will see that those shapes are embedded in the dimension-reduced t-SNE plot.  
+Setting `perplexity` = 750, the t-SNE algorithm will take a long time to compute the embeddings, but the result is superb. If you take some time to explore all of the plots above, you will see that those shapes are embedded in the dimension-reduced t-SNE plot.  
 
 
 ```{r, webgl = TRUE}
@@ -139,5 +168,23 @@ m2 <- Rtsne(as.matrix(scale(A)), dims = 3, initial_dims = 6, perplexity = 750)
 B <- data.frame(m2$Y)
 B$v4 <- A$v4
 # load("dimension_reduction.RData")
-with(B, plot3d(X1, X2, X3, type = "s", size = 1,  col = cr[v4]))
+with(B, plot3d(X1, X2, X3, type = "s", size = 1,  col = cr2[v4]))
 ```
+
+
+Not wishing to disappoint fans of MDS -  
+
+```{r, webgl = TRUE}
+d <- dist(as.matrix(scale(A)))
+m2 <- cmdscale(d, k = 3)
+
+B <- data.frame(m2)
+B$v4 <- A$v4
+B$v4[B$v4 == 0] <- 1
+
+with(B, plot3d(X1, X2, X3, type = "s", size = 1, col = cr2[v4], aspect = FALSE))
+# 
+
+```
+
+Some of the relationships have been captured astonishingly well.
