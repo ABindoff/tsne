@@ -158,7 +158,7 @@ We're up to 6 dimensions, so feasibly we could explore them by looking at every 
 with(A, plot3d(v4, v1, v6, type = "s", size = 1, col = cr[v4]))
 ```
 
-But for every dimension we add, we have *d choose 3* possible spatial representations. If we have 10 dimensions, that's 120 (or d-1 choose 3 = 84 if we use colour).  
+But for every dimension we add, we have *d choose 3* possible spatial representations. If we have 10 dimensions, that's 120 relationships that we can visualise (and if, like I did, you think using colour as a way to represent a fourth dimension will always reduce the solution set, consider that *10 choose 4* = 210...). Of course, some of these dimensions may have no relationships, but in practice, how do we know?  
 
 Setting `perplexity` = 750, the t-SNE algorithm will take a long time to compute the embeddings, but the result is superb. If you take some time to explore all of the plots above, you will see that those shapes are embedded in the dimension-reduced t-SNE plot.  
 
@@ -187,4 +187,5 @@ with(B, plot3d(X1, X2, X3, type = "s", size = 1, col = cr2[v4], aspect = FALSE))
 
 ```
 
-Some of the relationships have been captured astonishingly well.
+Some of the relationships have been captured astonishingly well.  
+
